@@ -22,8 +22,6 @@ package cost
 
 import (
 	"fmt"
-
-	"github.com/uber-go/tally"
 )
 
 const (
@@ -55,7 +53,7 @@ type enforcer struct {
 	tracker Tracker
 
 	costMsg string
-	metrics enforcerMetrics
+	metrics EnforcerReporter
 }
 
 // NewEnforcer returns a new enforcer for cost limits.
@@ -64,28 +62,36 @@ func NewEnforcer(m LimitManager, t Tracker, opts EnforcerOptions) Enforcer {
 		opts = NewEnforcerOptions()
 	}
 
+	reporter := opts.Reporter()
+	if reporter == nil {
+		reporter = NoopEnforcerReporter()
+	}
+
 	return &enforcer{
 		LimitManager: m,
 		tracker:      t,
 		costMsg:      opts.CostExceededMessage(),
-		metrics:      newEnforcerMetrics(opts.InstrumentOptions().MetricsScope(), opts.ValueBuckets()),
+		metrics:      reporter,
 	}
+}
+
+func (e *enforcer) Reporter() EnforcerReporter {
+	return e.metrics
 }
 
 // Add adds the cost of an operation to the enforcer's current total. If the operation exceeds
 // the enforcer's limit the enforcer will return a CostLimit error in addition to the new total.
 func (e *enforcer) Add(cost Cost) Report {
+	e.metrics.ReportCost(cost)
 	current := e.tracker.Add(cost)
+	e.metrics.ReportCurrent(current)
 
 	limit := e.Limit()
 	overLimit := e.checkLimit(current, limit)
 
 	if overLimit != nil {
 		// Emit metrics on number of operations that are over the limit even when not enabled.
-		e.metrics.overLimit.Inc(1)
-		if limit.Enabled {
-			e.metrics.overLimitAndEnabled.Inc(1)
-		}
+		e.metrics.ReportOverLimit(limit.Enabled)
 	}
 
 	return Report{
@@ -151,14 +157,15 @@ func NoopEnforcer() Enforcer {
 	return noopEnforcer
 }
 
-type enforcerMetrics struct {
-	overLimit           tally.Counter
-	overLimitAndEnabled tally.Counter
-}
+type noopEnforcerReporter struct{}
 
-func newEnforcerMetrics(s tally.Scope, b tally.ValueBuckets) enforcerMetrics {
-	return enforcerMetrics{
-		overLimit:           s.Counter("over-limit"),
-		overLimitAndEnabled: s.Counter("over-limit-and-enabled"),
-	}
+func (noopEnforcerReporter) ReportCost(c Cost) {}
+
+func (noopEnforcerReporter) ReportCurrent(c Cost) {}
+
+func (noopEnforcerReporter) ReportOverLimit(enabled bool) {}
+
+// NoopEnforcerReporter returns an EnforcerReporter which does nothing on all events.
+func NoopEnforcerReporter() EnforcerReporter {
+	return noopEnforcerReporter{}
 }

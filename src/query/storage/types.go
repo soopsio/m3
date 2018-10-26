@@ -26,9 +26,12 @@ import (
 	"time"
 
 	"github.com/m3db/m3/src/query/block"
+	"github.com/m3db/m3/src/query/cost"
 	"github.com/m3db/m3/src/query/models"
 	"github.com/m3db/m3/src/query/ts"
 	xtime "github.com/m3db/m3x/time"
+
+	"github.com/uber-go/tally"
 )
 
 // Type describes the type of storage
@@ -86,6 +89,8 @@ type FetchOptions struct {
 	BlockType models.FetchedBlockType
 	// FanoutOptions are the options for the fetch namespace fanout.
 	FanoutOptions *FanoutOptions
+	Enforcer      cost.ChainedEnforcer
+	Scope         tally.Scope
 }
 
 // FanoutOptions describes which namespaces should be fanned out to for
@@ -124,6 +129,8 @@ func NewFetchOptions() *FetchOptions {
 			FanoutAggregated:          FanoutDefault,
 			FanoutAggregatedOptimized: FanoutDefault,
 		},
+		Enforcer: cost.NoopChainedEnforcer(),
+		Scope:    tally.NoopScope,
 	}
 }
 

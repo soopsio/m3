@@ -1,6 +1,3 @@
-# m3query configuration for local development setup. Mostly the same as m3query-local-etcd.yml, but using fewer
-# resources (threads primarily).
-
 listenAddress:
   type: "config"
   value: "0.0.0.0:7201"
@@ -53,25 +50,9 @@ clusters:
       backgroundHealthCheckFailLimit: 4
       backgroundHealthCheckFailThrottleFactor: 0.5
 
-readWorkerPoolPolicy:
-  grow: false
-  size: 10
-
-writeWorkerPoolPolicy:
-  grow: false
-  size: 10
-
-tagOptions:
-  idScheme: quoted
-
-# Uncomment this to enable local jaeger tracing. See https://www.jaegertracing.io/docs/1.9/getting-started/
-# for quick local setup (which this config will send data to).
-
-# tracing:
-#  backend: jaeger
-
 limits:
   perQuery:
-    maxFetchedDatapoints: 5000000
+    maxComputedDatapoints: 12000
+    maxFetchedDatapoints: 11000
   global:
-    maxFetchedDatapoints: 500000000
+    maxFetchedDatapoints: 13000
