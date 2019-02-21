@@ -144,8 +144,24 @@ type FilterConfiguration struct {
 // LimitsConfiguration represents limitations on resource usage in the query instance. Limits are split between per-query
 // and global limits.
 type LimitsConfiguration struct {
+	// deprecated: use PerQuery.MaxComputedDatapoints instead.
+	DeprecatedMaxComputedDatapoints int64 `yaml:"maxComputedDatapoints"`
+
 	Global   GlobalLimitsConfiguration   `yaml:"global"`
 	PerQuery PerQueryLimitsConfiguration `yaml:"perQuery"`
+}
+
+// MaxComputedDatapoints is a getter providing backwards compatibility between
+// LimitsConfiguration.DeprecatedMaxComputedDatapoints and
+// LimitsConfiguration.PerQuery.PrivateMaxComputedDatapoints. See
+// LimitsConfiguration.PerQuery.PrivateMaxComputedDatapoints for a comment on
+// the semantics.
+func (lc *LimitsConfiguration) MaxComputedDatapoints() int64 {
+	if lc.PerQuery.PrivateMaxComputedDatapoints != 0 {
+		return lc.PerQuery.PrivateMaxComputedDatapoints
+	}
+
+	return lc.DeprecatedMaxComputedDatapoints
 }
 
 // GlobalLimitsConfiguration represents limits on resource usage across a query instance. Zero or negative values imply no limit.
@@ -161,9 +177,14 @@ func (l *GlobalLimitsConfiguration) AsLimitManagerOptions() cost.LimitManagerOpt
 
 // PerQueryLimitsConfiguration represents limits on resource usage within a single query. Zero or negative values imply no limit.
 type PerQueryLimitsConfiguration struct {
-	// MaxComputedDatapoints limits the number of datapoints that can be returned by a query. It's determined purely
+	// PrivateMaxComputedDatapoints limits the number of datapoints that can be
+	// returned by a query. It's determined purely
 	// from the size of the time range and the step size (end - start / step).
-	MaxComputedDatapoints int64 `yaml:"maxComputedDatapoints"`
+	//
+	// N.B.: the hacky "Private" prefix is to indicate that callers should use
+	// LimitsConfiguration.MaxComputedDatapoints() instead of accessing
+	// this field directly.
+	PrivateMaxComputedDatapoints int64 `yaml:"maxComputedDatapoints"`
 
 	// MaxFetchedDatapoints limits the number of datapoints actually used by a given query.
 	MaxFetchedDatapoints int64 `yaml:"maxFetchedDatapoints"`

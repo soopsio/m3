@@ -118,7 +118,7 @@ func NewPromReadHandler(
 		timeoutOps:      timeoutOpts,
 	}
 
-	h.promReadMetrics.maxDatapoints.Update(float64(limitsCfg.PerQuery.MaxComputedDatapoints))
+	h.promReadMetrics.maxDatapoints.Update(float64(limitsCfg.MaxComputedDatapoints()))
 	return h
 }
 
@@ -189,7 +189,7 @@ func (h *PromReadHandler) validateRequest(params *models.RequestParams) error {
 	// querying from the beginning of time with a 1s step size.
 	// Approach taken directly from prom.
 	numSteps := int64(params.End.Sub(params.Start) / params.Step)
-	maxComputedDatapoints := h.limitsCfg.PerQuery.MaxComputedDatapoints
+	maxComputedDatapoints := h.limitsCfg.MaxComputedDatapoints()
 	if maxComputedDatapoints > 0 && numSteps > maxComputedDatapoints {
 		return fmt.Errorf(
 			"querying from %v to %v with step size %v would result in too many datapoints "+

@@ -139,7 +139,7 @@ func TestPromReadHandler_ServeHTTP_maxComputedDatapoints(t *testing.T) {
 	setup := newTestSetup()
 	setup.Handler.limitsCfg = &config.LimitsConfiguration{
 		PerQuery: config.PerQueryLimitsConfiguration{
-			MaxComputedDatapoints: 3599,
+			PrivateMaxComputedDatapoints: 3599,
 		},
 	}
 
@@ -250,7 +250,7 @@ func TestPromReadHandler_validateRequest(t *testing.T) {
 			setup := newTestSetup()
 			setup.Handler.limitsCfg = &config.LimitsConfiguration{
 				PerQuery: config.PerQueryLimitsConfiguration{
-					MaxComputedDatapoints: tc.Max,
+					PrivateMaxComputedDatapoints: tc.Max,
 				},
 			}
 

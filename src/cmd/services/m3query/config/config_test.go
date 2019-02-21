@@ -101,6 +101,27 @@ func TestLimitsConfiguration_AsLimitManagerOptions(t *testing.T) {
 	}
 }
 
+func TestLimitsConfiguration_MaxComputedDatapoints(t *testing.T) {
+	t.Run("uses PerQuery value if provided", func(t *testing.T) {
+		lc := &LimitsConfiguration{
+			DeprecatedMaxComputedDatapoints: 6,
+			PerQuery: PerQueryLimitsConfiguration{
+				PrivateMaxComputedDatapoints: 5,
+			},
+		}
+
+		assert.Equal(t, int64(5), lc.MaxComputedDatapoints())
+	})
+
+	t.Run("uses deprecated value if PerQuery not provided", func(t *testing.T) {
+		lc := &LimitsConfiguration{
+			DeprecatedMaxComputedDatapoints: 6,
+		}
+
+		assert.Equal(t, int64(6), lc.MaxComputedDatapoints())
+	})
+}
+
 func TestToLimitManagerOptions(t *testing.T) {
 	cases := []struct {
 		Name          string
@@ -141,9 +162,10 @@ func TestConfigLoading(t *testing.T) {
 	require.NoError(t, xconfig.LoadFile(&cfg, testConfigFile, xconfig.Options{}))
 
 	assert.Equal(t, &LimitsConfiguration{
+		DeprecatedMaxComputedDatapoints: 10555,
 		PerQuery: PerQueryLimitsConfiguration{
-			MaxComputedDatapoints: 12000,
-			MaxFetchedDatapoints:  11000,
+			PrivateMaxComputedDatapoints: 12000,
+			MaxFetchedDatapoints:         11000,
 		},
 		Global: GlobalLimitsConfiguration{
 			MaxFetchedDatapoints: 13000,
@@ -181,7 +203,7 @@ func TestConfigValidation(t *testing.T) {
 			cfg := baseCfg(t)
 			cfg.Limits = LimitsConfiguration{
 				PerQuery: PerQueryLimitsConfiguration{
-					MaxComputedDatapoints: tc.Limit,
+					PrivateMaxComputedDatapoints: tc.Limit,
 				}}
 
 			assert.NoError(t, validator.Validate(cfg))
