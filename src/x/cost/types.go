@@ -73,7 +73,6 @@ type Enforcer interface {
 
 // An EnforcerReporter is a listener for Enforcer events.
 type EnforcerReporter interface {
-
 	// ReportCost is called on every call to Enforcer#Add with the added cost
 	ReportCost(c Cost)
 
