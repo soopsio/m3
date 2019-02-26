@@ -344,7 +344,7 @@ func TestNewPerQueryEnforcer(t *testing.T) {
 			},
 		}
 
-		global, err := newPerQueryEnforcer(cfg, instrument.NewOptions())
+		global, err := newConfiguredChainedEnforcer(cfg, instrument.NewOptions())
 		require.NoError(t, err)
 
 		queryLvl := global.Child(cost.QueryLevel)
