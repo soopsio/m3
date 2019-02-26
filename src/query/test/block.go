@@ -129,7 +129,7 @@ func NewBlockFromValuesWithMetaAndSeriesMeta(
 	seriesMeta []block.SeriesMeta,
 	seriesValues [][]float64,
 ) block.Block {
-	columnBuilder := block.NewColumnBlockBuilder(meta, seriesMeta, models.NoopQueryContext())
+	columnBuilder := block.NewColumnBlockBuilder(models.NoopQueryContext(), meta, seriesMeta)
 	columnBuilder.AddCols(len(seriesValues[0]))
 	for _, seriesVal := range seriesValues {
 		for idx, val := range seriesVal {

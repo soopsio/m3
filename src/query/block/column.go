@@ -172,7 +172,10 @@ func NewColStep(t time.Time, values []float64) Step {
 }
 
 // NewColumnBlockBuilder creates a new column block builder
-func NewColumnBlockBuilder(meta Metadata, seriesMeta []SeriesMeta, queryCtx *models.QueryContext) Builder {
+func NewColumnBlockBuilder(
+	queryCtx *models.QueryContext,
+	meta Metadata,
+	seriesMeta []SeriesMeta) Builder {
 	return ColumnBlockBuilder{
 		enforcer:        queryCtx.Enforcer.Child(cost.BlockLevel),
 		blockDatapoints: queryCtx.Scope.Tagged(map[string]string{"type": "generated"}).Counter("datapoints"),

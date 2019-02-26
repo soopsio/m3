@@ -28,39 +28,41 @@ import (
 )
 
 const (
-	// BlockLevel identifies per-block enforcers
+	// BlockLevel identifies per-block enforcers.
 	BlockLevel = "block"
-	// QueryLevel identifies per-query enforcers
+	// QueryLevel identifies per-query enforcers.
 	QueryLevel = "query"
-
 	// GlobalLevel identifies global enforcers.
 	GlobalLevel = "global"
 )
 
 // ChainedEnforcer is a cost.Enforcer implementation which tracks resource usage implements cost.Enforcer to enforce
 // limits on multiple resources at once, linked together in a tree.
-// Child() creates a new chainedEnforcer which rolls up into this one.
 type ChainedEnforcer interface {
 	cost.Enforcer
 
 	// Child creates a new ChainedEnforcer which rolls up to this one.
 	Child(resourceName string) ChainedEnforcer
+
+	// Release indicates that all resources have been returned for this
+	// ChainedEnforcer. It should inform all parent enforcers that the
+	// resources have been freed.
 	Release()
 }
 
-type noopChainedReporter struct {
-	cost.EnforcerReporter
-}
+type noopChainedReporter struct{}
 
-func (noopChainedReporter) OnChildRelease(currentCost cost.Cost) {
-}
+func (noopChainedReporter) ReportCost(c cost.Cost) {}
 
-func (noopChainedReporter) OnRelease(currentCost cost.Cost) {
-}
+func (noopChainedReporter) ReportCurrent(c cost.Cost) {}
 
-var noopChainedReporterInstance = noopChainedReporter{
-	EnforcerReporter: cost.NoopEnforcerReporter(),
-}
+func (noopChainedReporter) ReportOverLimit(enabled bool) {}
+
+func (noopChainedReporter) OnChildRelease(currentCost cost.Cost) {}
+
+func (noopChainedReporter) OnRelease(currentCost cost.Cost) {}
+
+var noopChainedReporterInstance = noopChainedReporter{}
 
 // chainedReporter is a listener for chainedEnforcer methods, which listens to Release events in addition to
 // events used by cost.EnforcerReporter.
@@ -83,7 +85,16 @@ type chainedEnforcer struct {
 	reporter     chainedReporter
 }
 
-var noopChainedEnforcer, _ = NewChainedEnforcer("", []cost.Enforcer{cost.NoopEnforcer()})
+var noopChainedEnforcer = mustNoopChainedEnforcer()
+
+func mustNoopChainedEnforcer() ChainedEnforcer {
+	rtn, err := NewChainedEnforcer("", []cost.Enforcer{cost.NoopEnforcer()})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return rtn
+}
 
 // NoopChainedEnforcer returns a chainedEnforcer which enforces no limits and does no reporting.
 func NoopChainedEnforcer() ChainedEnforcer {

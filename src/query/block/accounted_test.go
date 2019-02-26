@@ -23,8 +23,9 @@ package block
 import (
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/m3db/m3/src/query/cost"
+
+	"github.com/golang/mock/gomock"
 )
 
 func TestAccountedBlock_Close(t *testing.T) {
