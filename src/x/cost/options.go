@@ -97,11 +97,13 @@ func (o *limitManagerOptions) InstrumentOptions() instrument.Options {
 
 // EnforcerOptions provides a set of options for an enforcer.
 type EnforcerOptions interface {
+	// Reporter is the reporter which will be used on Enforcer events.
 	Reporter() EnforcerReporter
+
+	// SetReporter sets Reporter()
 	SetReporter(r EnforcerReporter) EnforcerOptions
 
-	// SetCostExceededMessage sets the message appended to cost limit errors to provide
-	// more context on the cost limit that was exceeded.
+	// SetCostExceededMessage sets CostExceededMessage
 	SetCostExceededMessage(val string) EnforcerOptions
 
 	// CostExceededMessage returns the message appended to cost limit errors to provide

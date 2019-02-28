@@ -89,8 +89,11 @@ type FetchOptions struct {
 	BlockType models.FetchedBlockType
 	// FanoutOptions are the options for the fetch namespace fanout.
 	FanoutOptions *FanoutOptions
-	Enforcer      cost.ChainedEnforcer
-	Scope         tally.Scope
+	// Enforcer is used to enforce resource limits on the number of datapoints
+	// used by a given query. Limits are imposed at time of decompression.
+	Enforcer cost.ChainedEnforcer
+	// Scope is used to report metrics about the fetch.
+	Scope tally.Scope
 }
 
 // FanoutOptions describes which namespaces should be fanned out to for

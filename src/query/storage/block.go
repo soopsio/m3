@@ -38,8 +38,9 @@ func FetchResultToBlockResult(result *FetchResult, query *FetchQuery, lookbackDu
 		return block.Result{}, err
 	}
 
+	accountedBlock := block.NewAccountedBlock(NewMultiBlockWrapper(multiBlock), enforcer)
 	return block.Result{
-		Blocks: []block.Block{block.NewAccountedBlock(NewMultiBlockWrapper(multiBlock), enforcer)},
+		Blocks: []block.Block{accountedBlock},
 	}, nil
 }
 

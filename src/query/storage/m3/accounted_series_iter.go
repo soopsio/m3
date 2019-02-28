@@ -85,5 +85,5 @@ func (as *AccountedSeriesIter) Next() bool {
 // Close closes the underlying iterator, and marks datapoints as released to our enforcer.
 func (as *AccountedSeriesIter) Close() {
 	as.SeriesIterator.Close()
-	as.enforcer.Release()
+	as.enforcer.Close()
 }

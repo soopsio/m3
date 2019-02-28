@@ -20,6 +20,8 @@
 
 package server
 
+// This file contains reporters and setup for our query/cost.ChainedEnforcer
+// instances.
 import (
 	"sync"
 
@@ -30,8 +32,6 @@ import (
 
 	"github.com/uber-go/tally"
 )
-
-// Reporters for our query/cost.ChainedEnforcer instances.
 
 const (
 	queriesOverLimitMetric  = "over_datapoints_limit"
@@ -69,7 +69,7 @@ func newConfiguredChainedEnforcer(cfg *config.Configuration, instrumentOptions i
 	)
 
 	queryEnforcerOpts := cost.NewEnforcerOptions().SetCostExceededMessage("limits.perQuery.maxDatapointMemoryBytes exceeded").
-		SetReporter(newPerQueryReporter(instrumentOptions.MetricsScope().
+		SetReporter(newPerQueryReporter(costScope.
 			SubScope("per_query")))
 
 	queryEnforcer := cost.NewEnforcer(
@@ -97,6 +97,9 @@ type globalReporter struct {
 	overLimit         overLimitReporter
 }
 
+// assert we implement the interface
+var _ cost.EnforcerReporter = (*globalReporter)(nil)
+
 func newGlobalReporter(s tally.Scope) *globalReporter {
 	return &globalReporter{
 		datapoints:        s.Gauge(datapointsMetric),
@@ -109,6 +112,8 @@ func (gr *globalReporter) ReportCurrent(c cost.Cost) {
 	gr.datapoints.Update(float64(c))
 }
 
+// ReportCost for global reporters sends the new incoming cost to a counter.
+// Since counters can only be incremented, it ignores negative values.
 func (gr *globalReporter) ReportCost(c cost.Cost) {
 	if c > 0 {
 		gr.datapointsCounter.Inc(int64(c))
@@ -128,6 +133,9 @@ type perQueryReporter struct {
 	overLimit     overLimitReporter
 }
 
+// assert we implement the interface
+var _ qcost.ChainedReporter = (*perQueryReporter)(nil)
+
 func newPerQueryReporter(scope tally.Scope) *perQueryReporter {
 	return &perQueryReporter{
 		mu:            &sync.Mutex{},
@@ -142,23 +150,21 @@ func newPerQueryReporter(scope tally.Scope) *perQueryReporter {
 // the current cost for every query (hard to meaningfully divide out).
 // Instead, we report the max datapoints at the end of the query--see on
 // release.
-func (perQueryReporter) ReportCost(c cost.Cost) {
-}
+func (perQueryReporter) ReportCost(c cost.Cost) {}
 
 // ReportCurrent is a noop for perQueryReporter--see ReportCost for
 // explanation.
-func (perQueryReporter) ReportCurrent(c cost.Cost) {
-}
+func (perQueryReporter) ReportCurrent(c cost.Cost) {}
 
 // ReportOverLimit reports when a query is over its per query limit.
 func (pr *perQueryReporter) ReportOverLimit(enabled bool) {
 	pr.overLimit.ReportOverLimit(enabled)
 }
 
-// OnChildRelease takes the max of the current cost for this query and the
+// OnChildClose takes the max of the current cost for this query and the
 // previously recorded cost. We do this OnChildRelease instead of on
 // ReportCurrent to avoid locking every time we add to the Enforcer.
-func (pr *perQueryReporter) OnChildRelease(curCost cost.Cost) {
+func (pr *perQueryReporter) OnChildClose(curCost cost.Cost) {
 	pr.mu.Lock()
 	if curCost > pr.maxDatapoints {
 		pr.maxDatapoints = curCost
@@ -166,8 +172,8 @@ func (pr *perQueryReporter) OnChildRelease(curCost cost.Cost) {
 	pr.mu.Unlock()
 }
 
-// OnRelease records the maximum cost seen by this reporter.
-func (pr *perQueryReporter) OnRelease(curCost cost.Cost) {
+// OnClose records the maximum cost seen by this reporter.
+func (pr *perQueryReporter) OnClose(curCost cost.Cost) {
 	pr.mu.Lock()
 	pr.queryHisto.RecordValue(float64(pr.maxDatapoints))
 	pr.mu.Unlock()

@@ -140,97 +140,97 @@ func (mr *MockChainedEnforcerMockRecorder) Child(resourceName interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Child", reflect.TypeOf((*MockChainedEnforcer)(nil).Child), resourceName)
 }
 
-// Release mocks base method
-func (m *MockChainedEnforcer) Release() {
+// Close mocks base method
+func (m *MockChainedEnforcer) Close() {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Release")
+	m.ctrl.Call(m, "Close")
 }
 
-// Release indicates an expected call of Release
-func (mr *MockChainedEnforcerMockRecorder) Release() *gomock.Call {
+// Close indicates an expected call of Close
+func (mr *MockChainedEnforcerMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Release", reflect.TypeOf((*MockChainedEnforcer)(nil).Release))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockChainedEnforcer)(nil).Close))
 }
 
-// MockchainedReporter is a mock of chainedReporter interface
-type MockchainedReporter struct {
+// MockChainedReporter is a mock of ChainedReporter interface
+type MockChainedReporter struct {
 	ctrl     *gomock.Controller
-	recorder *MockchainedReporterMockRecorder
+	recorder *MockChainedReporterMockRecorder
 }
 
-// MockchainedReporterMockRecorder is the mock recorder for MockchainedReporter
-type MockchainedReporterMockRecorder struct {
-	mock *MockchainedReporter
+// MockChainedReporterMockRecorder is the mock recorder for MockChainedReporter
+type MockChainedReporterMockRecorder struct {
+	mock *MockChainedReporter
 }
 
-// NewMockchainedReporter creates a new mock instance
-func NewMockchainedReporter(ctrl *gomock.Controller) *MockchainedReporter {
-	mock := &MockchainedReporter{ctrl: ctrl}
-	mock.recorder = &MockchainedReporterMockRecorder{mock}
+// NewMockChainedReporter creates a new mock instance
+func NewMockChainedReporter(ctrl *gomock.Controller) *MockChainedReporter {
+	mock := &MockChainedReporter{ctrl: ctrl}
+	mock.recorder = &MockChainedReporterMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockchainedReporter) EXPECT() *MockchainedReporterMockRecorder {
+func (m *MockChainedReporter) EXPECT() *MockChainedReporterMockRecorder {
 	return m.recorder
 }
 
 // ReportCost mocks base method
-func (m *MockchainedReporter) ReportCost(c cost0.Cost) {
+func (m *MockChainedReporter) ReportCost(c cost0.Cost) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ReportCost", c)
 }
 
 // ReportCost indicates an expected call of ReportCost
-func (mr *MockchainedReporterMockRecorder) ReportCost(c interface{}) *gomock.Call {
+func (mr *MockChainedReporterMockRecorder) ReportCost(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportCost", reflect.TypeOf((*MockchainedReporter)(nil).ReportCost), c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportCost", reflect.TypeOf((*MockChainedReporter)(nil).ReportCost), c)
 }
 
 // ReportCurrent mocks base method
-func (m *MockchainedReporter) ReportCurrent(c cost0.Cost) {
+func (m *MockChainedReporter) ReportCurrent(c cost0.Cost) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ReportCurrent", c)
 }
 
 // ReportCurrent indicates an expected call of ReportCurrent
-func (mr *MockchainedReporterMockRecorder) ReportCurrent(c interface{}) *gomock.Call {
+func (mr *MockChainedReporterMockRecorder) ReportCurrent(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportCurrent", reflect.TypeOf((*MockchainedReporter)(nil).ReportCurrent), c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportCurrent", reflect.TypeOf((*MockChainedReporter)(nil).ReportCurrent), c)
 }
 
 // ReportOverLimit mocks base method
-func (m *MockchainedReporter) ReportOverLimit(enabled bool) {
+func (m *MockChainedReporter) ReportOverLimit(enabled bool) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ReportOverLimit", enabled)
 }
 
 // ReportOverLimit indicates an expected call of ReportOverLimit
-func (mr *MockchainedReporterMockRecorder) ReportOverLimit(enabled interface{}) *gomock.Call {
+func (mr *MockChainedReporterMockRecorder) ReportOverLimit(enabled interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportOverLimit", reflect.TypeOf((*MockchainedReporter)(nil).ReportOverLimit), enabled)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportOverLimit", reflect.TypeOf((*MockChainedReporter)(nil).ReportOverLimit), enabled)
 }
 
-// OnChildRelease mocks base method
-func (m *MockchainedReporter) OnChildRelease(currentCost cost0.Cost) {
+// OnChildClose mocks base method
+func (m *MockChainedReporter) OnChildClose(currentCost cost0.Cost) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OnChildRelease", currentCost)
+	m.ctrl.Call(m, "OnChildClose", currentCost)
 }
 
-// OnChildRelease indicates an expected call of OnChildRelease
-func (mr *MockchainedReporterMockRecorder) OnChildRelease(currentCost interface{}) *gomock.Call {
+// OnChildClose indicates an expected call of OnChildClose
+func (mr *MockChainedReporterMockRecorder) OnChildClose(currentCost interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnChildRelease", reflect.TypeOf((*MockchainedReporter)(nil).OnChildRelease), currentCost)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnChildClose", reflect.TypeOf((*MockChainedReporter)(nil).OnChildClose), currentCost)
 }
 
-// OnRelease mocks base method
-func (m *MockchainedReporter) OnRelease(currentCost cost0.Cost) {
+// OnClose mocks base method
+func (m *MockChainedReporter) OnClose(currentCost cost0.Cost) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OnRelease", currentCost)
+	m.ctrl.Call(m, "OnClose", currentCost)
 }
 
-// OnRelease indicates an expected call of OnRelease
-func (mr *MockchainedReporterMockRecorder) OnRelease(currentCost interface{}) *gomock.Call {
+// OnClose indicates an expected call of OnClose
+func (mr *MockChainedReporterMockRecorder) OnClose(currentCost interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnRelease", reflect.TypeOf((*MockchainedReporter)(nil).OnRelease), currentCost)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnClose", reflect.TypeOf((*MockChainedReporter)(nil).OnClose), currentCost)
 }

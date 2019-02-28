@@ -35,7 +35,7 @@ func TestAccountedBlock_Close(t *testing.T) {
 	wrapped.EXPECT().Close()
 
 	mockEnforcer := cost.NewMockChainedEnforcer(ctrl)
-	mockEnforcer.EXPECT().Release()
+	mockEnforcer.EXPECT().Close()
 
 	NewAccountedBlock(wrapped, mockEnforcer).Close()
 }

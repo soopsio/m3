@@ -69,9 +69,3 @@ tagOptions:
 
 # tracing:
 #  backend: jaeger
-
-limits:
-  perQuery:
-    maxFetchedDatapoints: 5000000
-  global:
-    maxFetchedDatapoints: 500000000

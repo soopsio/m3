@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Uber Technologies, Inc.
+// Copyright (c) 2019 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,27 +18,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package block
+// Package test contains testing utilities for the cost package.
+package test
 
-import "github.com/m3db/m3/src/query/cost"
+import (
+	"github.com/m3db/m3/src/x/cost"
 
-// AccountedBlock is a wrapper for a block which enforces limits on the number of datapoints used by the block.
-type AccountedBlock struct {
-	Block
+	"github.com/stretchr/testify/assert"
+)
 
-	enforcer cost.ChainedEnforcer
-}
-
-// NewAccountedBlock wraps the given block and enforces datapoint limits.
-func NewAccountedBlock(wrapped Block, enforcer cost.ChainedEnforcer) *AccountedBlock {
-	return &AccountedBlock{
-		Block:    wrapped,
-		enforcer: enforcer,
-	}
-}
-
-// Close closes the block, and marks the number of datapoints used by this block as finished.
-func (ab *AccountedBlock) Close() error {
-	ab.enforcer.Close()
-	return ab.Block.Close()
+// AssertCurrentCost is a helper assertion to check that an enforcer has the
+// given cost.
+func AssertCurrentCost(t assert.TestingT, expectedCost cost.Cost, ef cost.Enforcer) {
+	actual, _ := ef.State()
+	assert.Equal(t, expectedCost, actual.Cost)
 }

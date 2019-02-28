@@ -147,7 +147,11 @@ type LimitsConfiguration struct {
 	// deprecated: use PerQuery.MaxComputedDatapoints instead.
 	DeprecatedMaxComputedDatapoints int64 `yaml:"maxComputedDatapoints"`
 
-	Global   GlobalLimitsConfiguration   `yaml:"global"`
+	// Global configures limits which apply across all queries running on this
+	// instance.
+	Global GlobalLimitsConfiguration `yaml:"global"`
+
+	// PerQuery configures limits which apply to each query individually.
 	PerQuery PerQueryLimitsConfiguration `yaml:"perQuery"`
 }
 

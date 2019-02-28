@@ -52,7 +52,7 @@ func TestPropertyPerQueryEnforcerAlwaysEndsUpZero(t *testing.T) {
 				defer wg.Done()
 
 				perQuery := pqf.Child("query")
-				defer perQuery.Release()
+				defer perQuery.Close()
 				perQuery.Add(cost.Cost(c))
 			}(c)
 		}
@@ -68,9 +68,9 @@ func TestPropertyPerQueryEnforcerAlwaysEndsUpZero(t *testing.T) {
 	props.Property("global enforcer >= 0",
 		prop.ForAll(
 			globalEndsUpZero,
-			gen.SliceOf(gen.Float64Range(0.0, 10000.0)),
-			gen.Float64Range(0.0, 10000.0),
-			gen.Float64Range(0.0, 10000.0),
+			gen.SliceOf(gen.Float64Range(0, 10000)),
+			gen.Float64Range(0.0, 10000),
+			gen.Float64Range(0.0, 10000),
 		))
 
 	props.TestingRun(t)

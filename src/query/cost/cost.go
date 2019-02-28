@@ -44,36 +44,32 @@ type ChainedEnforcer interface {
 	// Child creates a new ChainedEnforcer which rolls up to this one.
 	Child(resourceName string) ChainedEnforcer
 
-	// Release indicates that all resources have been returned for this
+	// Close indicates that all resources have been returned for this
 	// ChainedEnforcer. It should inform all parent enforcers that the
 	// resources have been freed.
-	Release()
+	Close()
 }
 
 type noopChainedReporter struct{}
 
-func (noopChainedReporter) ReportCost(c cost.Cost) {}
-
-func (noopChainedReporter) ReportCurrent(c cost.Cost) {}
-
-func (noopChainedReporter) ReportOverLimit(enabled bool) {}
-
-func (noopChainedReporter) OnChildRelease(currentCost cost.Cost) {}
-
-func (noopChainedReporter) OnRelease(currentCost cost.Cost) {}
+func (noopChainedReporter) ReportCost(_ cost.Cost)    {}
+func (noopChainedReporter) ReportCurrent(_ cost.Cost) {}
+func (noopChainedReporter) ReportOverLimit(_ bool)    {}
+func (noopChainedReporter) OnChildClose(_ cost.Cost)  {}
+func (noopChainedReporter) OnClose(_ cost.Cost)       {}
 
 var noopChainedReporterInstance = noopChainedReporter{}
 
-// chainedReporter is a listener for chainedEnforcer methods, which listens to Release events in addition to
+// ChainedReporter is a listener for chainedEnforcer methods, which listens to Close events in addition to
 // events used by cost.EnforcerReporter.
-type chainedReporter interface {
+type ChainedReporter interface {
 	cost.EnforcerReporter
 
-	// OnChildRelease is called whenever a child of this reporter's chainedEnforcer is released.
-	OnChildRelease(currentCost cost.Cost)
+	// OnChildClose is called whenever a child of this reporter's chainedEnforcer is released.
+	OnChildClose(currentCost cost.Cost)
 
-	// OnRelease is called whenever this reporter's chainedEnforcer is released.
-	OnRelease(currentCost cost.Cost)
+	// OnClose is called whenever this reporter's chainedEnforcer is released.
+	OnClose(currentCost cost.Cost)
 }
 
 // chainedEnforcer is the actual implementation of ChainedEnforcer.
@@ -82,7 +78,7 @@ type chainedEnforcer struct {
 	local        cost.Enforcer
 	parent       *chainedEnforcer
 	models       []cost.Enforcer
-	reporter     chainedReporter
+	reporter     ChainedReporter
 }
 
 var noopChainedEnforcer = mustNoopChainedEnforcer()
@@ -119,8 +115,8 @@ func NewChainedEnforcer(rootResourceName string, models []cost.Enforcer) (Chaine
 	}, nil
 }
 
-func upcastReporterOrNoop(r cost.EnforcerReporter) chainedReporter {
-	if r, ok := r.(chainedReporter); ok {
+func upcastReporterOrNoop(r cost.EnforcerReporter) ChainedReporter {
+	if r, ok := r.(ChainedReporter); ok {
 		return r
 	}
 
@@ -172,9 +168,11 @@ func (ce *chainedEnforcer) Child(resourceName string) ChainedEnforcer {
 	return &chainedEnforcer{
 		resourceName: resourceName,
 		parent:       ce,
-		local:        newLocal.Clone(),
-		models:       ce.models[1:],
-		reporter:     upcastReporterOrNoop(newLocal.Reporter()),
+		// make sure to clone the local enforcer, so that we're using an
+		// independent instance with the same configuration.
+		local:    newLocal.Clone(),
+		models:   ce.models[1:],
+		reporter: upcastReporterOrNoop(newLocal.Reporter()),
 	}
 }
 
@@ -188,14 +186,14 @@ func (ce *chainedEnforcer) State() (cost.Report, cost.Limit) {
 	return ce.local.State()
 }
 
-// Release releases all resources tracked by this enforcer back to the global enforcer
-func (ce *chainedEnforcer) Release() {
+// Close releases all resources tracked by this enforcer back to the global enforcer
+func (ce *chainedEnforcer) Close() {
 	r, _ := ce.local.State()
-	ce.reporter.OnRelease(r.Cost)
+	ce.reporter.OnClose(r.Cost)
 
 	if ce.parent != nil {
 		parentR, _ := ce.parent.State()
-		ce.parent.reporter.OnChildRelease(parentR.Cost)
+		ce.parent.reporter.OnChildClose(parentR.Cost)
 	}
 
 	ce.Add(-r.Cost)

@@ -21,14 +21,129 @@
 package server
 
 import (
+	"fmt"
+	"math"
 	"testing"
 
+	"github.com/m3db/m3/src/cmd/services/m3query/config"
+	"github.com/m3db/m3/src/query/cost"
+	"github.com/m3db/m3/src/x/cost/test"
+	"github.com/m3db/m3x/instrument"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/uber-go/tally"
 )
 
 func TestNewConfiguredChainedEnforcer(t *testing.T) {
+	type testCtx struct {
+		Scope          tally.TestScope
+		GlobalEnforcer cost.ChainedEnforcer
+	}
 
+	setup := func(t *testing.T, perQueryLimit, globalLimit int64) testCtx {
+		s := tally.NewTestScope("", nil)
+		iopts := instrument.NewOptions().SetMetricsScope(s)
+
+		globalEnforcer, err := newConfiguredChainedEnforcer(&config.Configuration{
+			Limits: config.LimitsConfiguration{
+				PerQuery: config.PerQueryLimitsConfiguration{
+					MaxFetchedDatapoints: perQueryLimit,
+				},
+				Global: config.GlobalLimitsConfiguration{
+					MaxFetchedDatapoints: globalLimit,
+				},
+			},
+		}, iopts)
+
+		require.NoError(t, err)
+
+		return testCtx{
+			Scope:          s,
+			GlobalEnforcer: globalEnforcer,
+		}
+	}
+
+	t.Run("has 3 valid levels", func(t *testing.T) {
+		tctx := setup(t, 6, 10)
+
+		assertValid := func(ce cost.ChainedEnforcer) {
+			assert.NotEqual(t, ce, cost.NoopChainedEnforcer())
+		}
+
+		assertValid(tctx.GlobalEnforcer)
+
+		qe := tctx.GlobalEnforcer.Child(cost.QueryLevel)
+		assertValid(qe)
+
+		block := qe.Child(cost.BlockLevel)
+		assertValid(block)
+
+		badLevel := block.Child("nonExistent")
+		assert.Equal(t, cost.NoopChainedEnforcer(),
+			badLevel)
+	})
+
+	t.Run("configures reporters", func(t *testing.T) {
+		tctx := setup(t, 6, 10)
+		queryEf := tctx.GlobalEnforcer.Child(cost.QueryLevel)
+		blockEf := queryEf.Child(cost.BlockLevel)
+		blockEf.Add(7)
+
+		assertHasGauge(t,
+			tctx.Scope.Snapshot(),
+			tally.KeyForPrefixedStringMap(
+				fmt.Sprintf("cost.global.%s", datapointsMetric), nil),
+			7,
+		)
+
+		blockEf.Close()
+		queryEf.Close()
+
+		assertHasHistogram(t,
+			tctx.Scope.Snapshot(),
+			tally.KeyForPrefixedStringMap(
+				fmt.Sprintf("cost.per_query.%s", maxDatapointsHistMetric), nil),
+			map[float64]int64{10: 1},
+		)
+	})
+
+	t.Run("block level doesn't have a limit", func(t *testing.T) {
+		tctx := setup(t, -1, -1)
+		block := tctx.GlobalEnforcer.Child(cost.QueryLevel).Child(cost.BlockLevel)
+		assert.NoError(t, block.Add(math.MaxFloat64-1).Error)
+	})
+
+	t.Run("works e2e", func(t *testing.T) {
+		tctx := setup(t, 6, 10)
+
+		qe1, qe2 := tctx.GlobalEnforcer.Child(cost.QueryLevel), tctx.GlobalEnforcer.Child(cost.QueryLevel)
+		r := qe1.Add(6)
+		require.EqualError(t,
+			r.Error,
+			"exceeded query limit: 6 exceeds limit of 6: limits.perQuery.maxDatapointMemoryBytes exceeded")
+
+		r = qe2.Add(3)
+		require.NoError(t, r.Error)
+
+		r = qe2.Add(2)
+		require.EqualError(t,
+			r.Error,
+			"exceeded global limit: 11 exceeds limit of 10: limits.global.maxDatapointMemoryBytes exceeded")
+
+		test.AssertCurrentCost(t, 11, tctx.GlobalEnforcer)
+
+		qe2.Close()
+		test.AssertCurrentCost(t, 6, tctx.GlobalEnforcer)
+
+		// check the block level
+		blockEf := qe1.Child(cost.BlockLevel)
+		blockEf.Add(2)
+
+		test.AssertCurrentCost(t, 2, blockEf)
+		test.AssertCurrentCost(t, 8, qe1)
+		test.AssertCurrentCost(t, 8, tctx.GlobalEnforcer)
+	})
 }
 
 func setupGlobalReporter() (tally.TestScope, *globalReporter) {
@@ -81,13 +196,13 @@ func TestPerQueryReporter_ReportOverLimit(t *testing.T) {
 	}), 1)
 }
 
-func TestPerQueryReporter_OnRelease(t *testing.T) {
+func TestPerQueryReporter_OnClose(t *testing.T) {
 	s, pqr := setupPerQueryReporter()
-	pqr.OnChildRelease(5.0)
-	pqr.OnChildRelease(110.0)
+	pqr.OnChildClose(5.0)
+	pqr.OnChildClose(110.0)
 
 	// ignores current cost
-	pqr.OnRelease(100.0)
+	pqr.OnClose(100.0)
 	assertHasHistogram(t, s.Snapshot(),
 		tally.KeyForPrefixedStringMap(maxDatapointsHistMetric, nil),
 		map[float64]int64{
@@ -95,10 +210,10 @@ func TestPerQueryReporter_OnRelease(t *testing.T) {
 		})
 }
 
-func TestPerQueryReporter_OnChildRelease(t *testing.T) {
+func TestPerQueryReporter_OnChildClose(t *testing.T) {
 	_, pqr := setupPerQueryReporter()
-	pqr.OnChildRelease(5.0)
-	pqr.OnChildRelease(110.0)
+	pqr.OnChildClose(5.0)
+	pqr.OnChildClose(110.0)
 
 	assert.InDelta(t, 110.0, float64(pqr.maxDatapoints), 0.0001)
 }

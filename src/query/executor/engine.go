@@ -144,7 +144,7 @@ func (e *Engine) ExecuteExpr(
 
 	perQueryEnforcer := e.globalEnforcer.Child(qcost.QueryLevel)
 	defer func() {
-		perQueryEnforcer.Release()
+		perQueryEnforcer.Close()
 	}()
 
 	req := newRequest(e, params)

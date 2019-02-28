@@ -29,6 +29,7 @@ import (
 	qcost "github.com/m3db/m3/src/query/cost"
 	"github.com/m3db/m3/src/query/test/seriesiter"
 	"github.com/m3db/m3/src/x/cost"
+	"github.com/m3db/m3/src/x/cost/test"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -48,15 +49,6 @@ func newTestEnforcer(limit cost.Cost) qcost.ChainedEnforcer {
 		panic(err.Error())
 	}
 	return rtn
-}
-
-// copied from query/cost ; factor out if needed.
-func assertCurCost(t *testing.T, expectedCost cost.Cost, ef cost.Enforcer) {
-	actual, _ := ef.State()
-	assert.Equal(t, cost.Report{
-		Cost:  expectedCost,
-		Error: nil,
-	}, actual)
 }
 
 type accountedSeriesIterSetup struct {
@@ -81,7 +73,7 @@ func TestAccountedSeriesIter_Next(t *testing.T) {
 	t.Run("adds to enforcer", func(t *testing.T) {
 		setup := setupAccountedSeriesIter(t, 5, 5)
 		setup.Iter.Next()
-		assertCurCost(t, 1, setup.Enforcer)
+		test.AssertCurrentCost(t, 1, setup.Enforcer)
 	})
 
 	t.Run("returns all values", func(t *testing.T) {
@@ -161,9 +153,9 @@ func TestAccountedSeriesIter_Close(t *testing.T) {
 		assert.True(t, setup.Iter.Next())
 		require.NoError(t, setup.Iter.Err())
 
-		assertCurCost(t, 1, setup.Enforcer)
+		test.AssertCurrentCost(t, 1, setup.Enforcer)
 		setup.Iter.Close()
 
-		assertCurCost(t, 0, setup.Enforcer)
+		test.AssertCurrentCost(t, 0, setup.Enforcer)
 	})
 }

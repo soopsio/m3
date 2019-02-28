@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/m3db/m3/src/x/cost"
+	"github.com/m3db/m3/src/x/cost/test"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -44,9 +45,9 @@ func TestChainedEnforcer_Child(t *testing.T) {
 
 		l1.Add(2)
 
-		assertCurCost(t, 2.0, l1)
-		assertCurCost(t, 0.0, l2)
-		assertCurCost(t, 2.0, globalEnforcer)
+		test.AssertCurrentCost(t, 2.0, l1)
+		test.AssertCurrentCost(t, 0.0, l2)
+		test.AssertCurrentCost(t, 2.0, globalEnforcer)
 	})
 
 	t.Run("returns a noop enforcer once out of models", func(t *testing.T) {
@@ -59,7 +60,7 @@ func TestChainedEnforcer_Child(t *testing.T) {
 	})
 }
 
-func TestChainedEnforcer_Release(t *testing.T) {
+func TestChainedEnforcer_Close(t *testing.T) {
 	t.Run("removes local total from global", func(t *testing.T) {
 		parentIface, err := NewChainedEnforcer(
 			"",
@@ -75,22 +76,22 @@ func TestChainedEnforcer_Release(t *testing.T) {
 
 		pqe2.Add(cost.Cost(7.0))
 
-		pqe1.Release()
+		pqe1.Close()
 
-		assertCurCost(t, cost.Cost(7.0), parent.local)
-		pqe2.Release()
-		assertCurCost(t, cost.Cost(0.0), parent.local)
+		test.AssertCurrentCost(t, cost.Cost(7.0), parent.local)
+		pqe2.Close()
+		test.AssertCurrentCost(t, cost.Cost(0.0), parent.local)
 	})
 
 	t.Run("calls into reporter on release", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		makeEnforcer := func(cr chainedReporter) cost.Enforcer {
+		makeEnforcer := func(cr ChainedReporter) cost.Enforcer {
 			return cost.NewEnforcer(cost.NewStaticLimitManager(cost.NewLimitManagerOptions()), cost.NewTracker(),
 				cost.NewEnforcerOptions().SetReporter(cr))
 		}
 
-		makeReporter := func() *MockchainedReporter {
-			r := NewMockchainedReporter(ctrl)
+		makeReporter := func() *MockChainedReporter {
+			r := NewMockChainedReporter(ctrl)
 			r.EXPECT().ReportCurrent(gomock.Any()).AnyTimes()
 			r.EXPECT().ReportOverLimit(gomock.Any()).AnyTimes()
 			r.EXPECT().ReportCost(gomock.Any()).AnyTimes()
@@ -108,10 +109,10 @@ func TestChainedEnforcer_Release(t *testing.T) {
 
 		require.NoError(t, err)
 
-		globalReporter.EXPECT().OnChildRelease(floatMatcher(1.0))
-		localReporter.EXPECT().OnRelease(floatMatcher(1.0))
+		globalReporter.EXPECT().OnChildClose(floatMatcher(1.0))
+		localReporter.EXPECT().OnClose(floatMatcher(1.0))
 
-		child.Release()
+		child.Close()
 	})
 }
 
@@ -188,8 +189,8 @@ func TestChainedEnforcer_Add(t *testing.T) {
 		r := pqe.Add(6.0)
 		assertLocalError(t, r.Error)
 
-		pqe.Release()
-		assertCurCost(t, 0.0, pqe.local)
+		pqe.Close()
+		test.AssertCurrentCost(t, 0.0, pqe.local)
 	})
 
 	t.Run("release after global error", func(t *testing.T) {
@@ -197,8 +198,8 @@ func TestChainedEnforcer_Add(t *testing.T) {
 		// exceeds global
 		r := pqe.Add(6.0)
 		assertGlobalError(t, r.Error)
-		pqe.Release()
-		assertCurCost(t, 0.0, pqe.local)
+		pqe.Close()
+		test.AssertCurrentCost(t, 0.0, pqe.local)
 	})
 }
 
@@ -212,10 +213,10 @@ func TestChainedEnforcer_State(t *testing.T) {
 	assert.Equal(t, cost.Limit{Threshold: 5.0, Enabled: true}, l)
 }
 
-func TestNoopChainedEnforcer_Release(t *testing.T) {
+func TestNoopChainedEnforcer_Close(t *testing.T) {
 	ce := NoopChainedEnforcer()
-	ce.Release()
-	assertCurCost(t, 0.0, ce)
+	ce.Close()
+	test.AssertCurrentCost(t, 0.0, ce)
 }
 
 // utils
@@ -238,12 +239,4 @@ func newTestChainedEnforcer(globalLimit float64, localLimit float64) *chainedEnf
 	}
 
 	return rtn.Child("query").(*chainedEnforcer)
-}
-
-func assertCurCost(t *testing.T, expectedCost cost.Cost, ef cost.Enforcer) {
-	actual, _ := ef.State()
-	assert.Equal(t, cost.Report{
-		Cost:  expectedCost,
-		Error: nil,
-	}, actual)
 }
