@@ -25,8 +25,7 @@ import (
 )
 
 const (
-	defaultCostExceededErrorFmt = "%s exceeds limit of %s"
-	customCostExceededErrorFmt  = "%s exceeds limit of %s: %s"
+	defaultCostExceededErrorFmt = "limit reached (current = %v, limit = %v)"
 )
 
 var (
@@ -128,27 +127,35 @@ func (e *enforcer) checkLimit(cost Cost, limit Limit) error {
 		return nil
 	}
 
-	if e.costMsg == "" {
-		return defaultCostExceededError(cost, limit)
-	}
-	return costExceededError(e.costMsg, cost, limit)
+	return NewCostExceededError(e.costMsg, cost, limit.Threshold)
 }
 
-func defaultCostExceededError(cost Cost, limit Limit) error {
-	return fmt.Errorf(
+type costExceededError struct {
+	Threshold Cost
+	Current   Cost
+	CustomMsg string
+}
+
+func (ce costExceededError) Error() string {
+	baseMsg := fmt.Sprintf(
 		defaultCostExceededErrorFmt,
-		fmt.Sprintf("%v", float64(cost)),
-		fmt.Sprintf("%v", float64(limit.Threshold)),
+		float64(ce.Current),
+		float64(ce.Threshold),
 	)
+	if ce.CustomMsg == "" {
+		return baseMsg
+	}
+
+	return fmt.Sprintf("%s: %s", ce.CustomMsg, baseMsg)
 }
 
-func costExceededError(customMessage string, cost Cost, limit Limit) error {
-	return fmt.Errorf(
-		customCostExceededErrorFmt,
-		fmt.Sprintf("%v", float64(cost)),
-		fmt.Sprintf("%v", float64(limit.Threshold)),
-		customMessage,
-	)
+// NewCostExceededError returns an error for going over an Enforcer's limit.
+func NewCostExceededError(customMessage string, cost Cost, threshold Cost) error {
+	return costExceededError{
+		CustomMsg: customMessage,
+		Current:   cost,
+		Threshold: threshold,
+	}
 }
 
 // NoopEnforcer returns a new enforcer that always returns a current cost of 0 and
@@ -159,10 +166,8 @@ func NoopEnforcer() Enforcer {
 
 type noopEnforcerReporter struct{}
 
-func (noopEnforcerReporter) ReportCost(c Cost) {}
-
-func (noopEnforcerReporter) ReportCurrent(c Cost) {}
-
+func (noopEnforcerReporter) ReportCost(c Cost)            {}
+func (noopEnforcerReporter) ReportCurrent(c Cost)         {}
 func (noopEnforcerReporter) ReportOverLimit(enabled bool) {}
 
 // NoopEnforcerReporter returns an EnforcerReporter which does nothing on all events.

@@ -119,17 +119,23 @@ func TestNewConfiguredChainedEnforcer(t *testing.T) {
 
 		qe1, qe2 := tctx.GlobalEnforcer.Child(cost.QueryLevel), tctx.GlobalEnforcer.Child(cost.QueryLevel)
 		r := qe1.Add(6)
-		require.EqualError(t,
+		test.AssertLimitErrorWithMsg(
+			t,
 			r.Error,
-			"exceeded query limit: 6 exceeds limit of 6: limits.perQuery.maxDatapointMemoryBytes exceeded")
+			"exceeded query limit: limits.perQuery.maxFetchedDatapoints exceeded",
+			6,
+			6)
 
 		r = qe2.Add(3)
 		require.NoError(t, r.Error)
 
 		r = qe2.Add(2)
-		require.EqualError(t,
+		test.AssertLimitErrorWithMsg(
+			t,
 			r.Error,
-			"exceeded global limit: 11 exceeds limit of 10: limits.global.maxDatapointMemoryBytes exceeded")
+			"exceeded global limit: limits.global.maxFetchedDatapoints exceeded",
+			11,
+			10)
 
 		test.AssertCurrentCost(t, 11, tctx.GlobalEnforcer)
 

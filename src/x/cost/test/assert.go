@@ -33,3 +33,13 @@ func AssertCurrentCost(t assert.TestingT, expectedCost cost.Cost, ef cost.Enforc
 	actual, _ := ef.State()
 	assert.Equal(t, expectedCost, actual.Cost)
 }
+
+// AssertLimitError checks that err is a limit error with the given parameters
+func AssertLimitError(t assert.TestingT, err error, current, threshold cost.Cost) {
+	AssertLimitErrorWithMsg(t, err, "", current, threshold)
+}
+
+// AssertLimitErrorWithMsg checks that err is a limit error with the given parameters
+func AssertLimitErrorWithMsg(t assert.TestingT, err error, msg string, current, threshold cost.Cost) {
+	assert.EqualError(t, err, cost.NewCostExceededError(msg, current, threshold).Error())
+}

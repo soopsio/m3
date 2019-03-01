@@ -65,10 +65,10 @@ func newConfiguredChainedEnforcer(cfg *config.Configuration, instrumentOptions i
 	globalEnforcer := cost.NewEnforcer(limitMgr, tracker,
 		cost.NewEnforcerOptions().SetReporter(
 			newGlobalReporter(costScope.SubScope("global")),
-		).SetCostExceededMessage("limits.global.maxDatapointMemoryBytes exceeded"),
+		).SetCostExceededMessage("limits.global.maxFetchedDatapoints exceeded"),
 	)
 
-	queryEnforcerOpts := cost.NewEnforcerOptions().SetCostExceededMessage("limits.perQuery.maxDatapointMemoryBytes exceeded").
+	queryEnforcerOpts := cost.NewEnforcerOptions().SetCostExceededMessage("limits.perQuery.maxFetchedDatapoints exceeded").
 		SetReporter(newPerQueryReporter(costScope.
 			SubScope("per_query")))
 

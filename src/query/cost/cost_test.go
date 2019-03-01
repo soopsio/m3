@@ -208,8 +208,8 @@ func TestChainedEnforcer_State(t *testing.T) {
 	pqe.Add(15.0)
 
 	r, l := pqe.State()
-	assert.Equal(t, cost.Cost(15.0), r.Cost)
-	assert.EqualError(t, r.Error, "15 exceeds limit of 5")
+	assert.Equal(t, cost.Cost(15), r.Cost)
+	test.AssertLimitError(t, r.Error, 15.0, 5.0)
 	assert.Equal(t, cost.Limit{Threshold: 5.0, Enabled: true}, l)
 }
 

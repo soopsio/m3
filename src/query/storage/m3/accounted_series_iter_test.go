@@ -48,6 +48,7 @@ func newTestEnforcer(limit cost.Cost) qcost.ChainedEnforcer {
 	if err != nil {
 		panic(err.Error())
 	}
+
 	return rtn
 }
 
@@ -97,24 +98,11 @@ func TestAccountedSeriesIter_Next(t *testing.T) {
 		setup := setupAccountedSeriesIter(t, 5, 2)
 
 		iter := setup.Iter
-		iter.Next()
+		assert.True(t, iter.Next())
 		require.NoError(t, iter.Err())
 
 		assert.False(t, iter.Next())
-		require.EqualError(t, iter.Err(), "exceeded block limit: 2 exceeds limit of 2")
-	})
-
-	t.Run("returns false after enforcer error", func(t *testing.T) {
-		setup := setupAccountedSeriesIter(t, 5, 2)
-		iter := setup.Iter
-
-		iter.Next()
-		iter.Next()
-
-		require.EqualError(t, iter.Err(), "exceeded block limit: 2 exceeds limit of 2")
-
-		assert.False(t, iter.Next())
-		assert.True(t, iter.SeriesIterator.Next())
+		test.AssertLimitErrorWithMsg(t, iter.Err(), "exceeded block limit", 2, 2)
 	})
 
 	t.Run("delegates on wrapped error", func(t *testing.T) {
@@ -143,7 +131,8 @@ func TestAccountedSeriesIter_Err(t *testing.T) {
 	t.Run("returns enforcer error", func(t *testing.T) {
 		setup := setupAccountedSeriesIter(t, 3, 1)
 		setup.Iter.Next()
-		assert.EqualError(t, setup.Iter.Err(), "exceeded block limit: 1 exceeds limit of 1")
+
+		test.AssertLimitErrorWithMsg(t, setup.Iter.Err(), "exceeded block limit", 1, 1)
 	})
 }
 
